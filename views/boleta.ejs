@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Boleta de Estacionamiento</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.6.0/css/bootstrap.min.css">
+</head>
+<body>
+  <div class="container">
+    <h1 class="mt-5">Boleta de Estacionamiento</h1>
+    <hr>
+
+    
+
+
+    <div class="row">
+      <div class="col-md-6">
+        <h4>Detalles de la Boleta:</h4>
+        <div class="form-group">
+          <label for="fecha">Fecha:</label>
+          <input type="text" class="form-control" id="fecha" name="fecha" value="<%= boleta.fecha %>" readonly>
+        </div>
+        <div class="form-group">
+          <label for="forma_pago">Forma de Pago:</label>
+          <input type="text" class="form-control" id="forma_pago" name="forma_pago" value="<%= boleta.forma_pago %>" readonly>
+        </div>
+        <div class="form-group">
+          <label for="costo">Costo de Estacionamiento:</label>
+          <input type="text" class="form-control" id="costo" name="costo" value="<%= boleta.costo %>" readonly>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <h4>Detalles de Estacionamiento:</h4>
+        <div class="form-group">
+          <label for="hora_entrada">Hora de Entrada:</label>
+          <input type="text" class="form-control" id="hora_entrada" name="hora_entrada" value="<%= horaEntrada %>" readonly>
+        </div>
+        <div class="form-group">
+          <label for="hora_salida">Hora de Salida:</label>
+          <input type="text" class="form-control" id="hora_salida" name="hora_salida" value="<%= horaSalida %>" readonly>
+        </div>
+        <div class="form-group">
+          <label for="tiempo_total">Tiempo Total (minutos):</label>
+          <input type="text" class="form-control" id="tiempo_total" name="tiempo_total" value="<%= tiempoTotal %>" readonly>
+        </div>
+        <div class="form-group">
+          <label for="costo_total">Costo Total:</label>
+          <input type="text" class="form-control" id="costo_total" name="costo_total" value="<%= costoTotal %>" readonly>
+        </div>
+      </div>
+    </div>
+
+    <a href="/" class="btn btn-primary mt-3">Volver</a>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.6.0/js/bootstrap.min.js"></script>
+</body>
+</html>
