@@ -1,0 +1,62 @@
+// schema.prisma
+generator client {
+  provider = "prisma-client-js"
+  output   = "./generated/client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Definición del modelo Vehicle
+model Vehicle {
+  id        Int      @id @default(autoincrement()) // Identificador único del vehículo
+  license   String   @unique // Número de matrícula del vehículo (debe ser único)
+  brand     String? // Marca del vehículo
+  model     String? // Modelo del vehículo
+  color     String? // Color del vehículo
+  createdAt DateTime @default(now()) // Fecha de creación del registro del vehículo
+
+  // Relación con el ticket de estacionamiento
+  ticket Ticket[] // Un vehículo puede tener varios tickets asociados
+}
+
+// Definición del modelo ParkingSpace
+model ParkingSpace {
+  id         Int      @id @default(autoincrement()) // Identificador único del espacio de estacionamiento
+  number     Int      @unique // Número único de espacio de estacionamiento
+  isOccupied Boolean // Indica si el espacio de estacionamiento está ocupado (true) o libre (false)
+  createdAt  DateTime @default(now()) // Fecha de creación del registro del espacio de estacionamiento
+
+  // Relación con el ticket de estacionamiento
+  ticket Ticket[] // Un espacio de estacionamiento puede estar asociado a varios tickets
+}
+
+// Definición del modelo Ticket
+model Ticket {
+  id             Int       @id @default(autoincrement()) // Identificador único del ticket
+  entryTime      DateTime  @default(now()) // Fecha y hora de entrada del vehículo
+  exitTime       DateTime? // Fecha y hora de salida del vehículo (null si aún no ha salido)
+  cost           Float? // Costo total del estacionamiento (null si el vehículo no ha salido)
+  vehicleId      Int // El ID del vehículo asociado
+  parkingSpaceId Int // El ID del espacio de estacionamiento asociado
+  createdAt      DateTime  @default(now()) // Fecha de creación del registro del ticket
+  updatedAt      DateTime  @updatedAt // Fecha de última actualización del registro del ticket
+
+  // Relaciones con otros modelos
+  vehicle      Vehicle       @relation(fields: [vehicleId], references: [id]) // Relación con el vehículo
+  parkingSpace ParkingSpace  @relation(fields: [parkingSpaceId], references: [id]) // Relación con el espacio de estacionamiento
+  Transaction  Transaction[]
+}
+
+// Definición del modelo Transaction (para el registro de transacciones monetarias)
+model Transaction {
+  id        Int      @id @default(autoincrement()) // Identificador único de la transacción
+  amount    Float // Monto de la transacción
+  ticketId  Int // El ID del ticket asociado a la transacción
+  createdAt DateTime @default(now()) // Fecha de creación de la transacción
+
+  // Relación con el ticket
+  ticket Ticket @relation(fields: [ticketId], references: [id])
+}
