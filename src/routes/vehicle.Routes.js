@@ -1,9 +1,12 @@
-// routes/vehicle.Routes.js
 const { Router } = require('express');
 const vehicleControllers = require('../controllers/vehicle.Controller');
 
 const router = Router();
 
-router.post('/registrar', vehicleControllers.registerVehicle);
+// Ruta para registrar un vehículo
+router.post('/register', vehicleControllers.registerVehicle);
+
+// Ruta para obtener una lista de vehículos registrados
+router.get('/', vehicleControllers.getAllVehicles);
 
 module.exports = router;
