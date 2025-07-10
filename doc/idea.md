@@ -289,3 +289,317 @@ Este documento explica en detalle todas las funcionalidades y módulos que sopor
 ---
 
 Con este esquema, tu base de datos soporta gestión operativa, financiera, auditoría, conciliación y generación de reportes completos, lista para integrarse con sistemas externos y escalar.
+
+---
+
+# Documentación del Esquema de Base de Datos
+
+Este documento describe cada entidad de tu esquema SQL y las capacidades que ofrece para un sistema de gestión de estacionamientos completo, con usuarios, vehículos, tarifas, sesiones, pagos, conciliaciones, notificaciones e informes.
+
+---
+
+## 1. Gestión de Usuarios y Roles (`users`)
+
+- id: Identificador único  
+- username: Nombre de usuario (único)  
+- password_hash: Contraseña hasheada  
+- role: Rol de acceso (`admin`, `operator`, `client`)  
+- created_at / updated_at: Trazabilidad de creación y modificación  
+
+**Permite**  
+• Controlar permisos y auditar quién realiza cada acción.
+
+---
+
+## 2. Gestión de Vehículos (`vehicles`)
+
+- id: PK  
+- plate: Matrícula (única)  
+- color: Color del vehículo  
+- owner_id: FK a `users.id` (opcional)  
+- created_at: Timestamp de registro  
+
+**Permite**  
+• Asociar vehículos a usuarios.  
+• Consultar historial de uso y notificaciones por matrícula.
+
+---
+
+## 3. Tarifas Históricas (`tariffs`)
+
+- id: PK  
+- day_rate: Tarifa CLP/hora diurna  
+- night_rate: Tarifa CLP/hora nocturna  
+- valid_from / valid_to: Vigencia de cada tarifa  
+- created_by: FK a `users.id`  
+- created_at: Fecha de inserción  
+
+**Permite**  
+• Mantener un historial completo de cambios tarifarios.  
+• Aplicar la tarifa correcta según fecha de check-in.
+
+---
+
+## 4. Plazas de Estacionamiento (`parking_spots`)
+
+- id: PK  
+- code: Código legible de plaza (e.g. “A1”)  
+- location: Ubicación descriptiva  
+- created_at: Fecha de alta  
+
+**Permite**  
+• Identificar y localizar cada plaza.  
+• Mostrar estado (libre/ocupada) en aplicaciones.
+
+---
+
+## 5. Sesiones de Ocupación (`sessions`)
+
+- id: PK  
+- spot_id: FK a `parking_spots.id`  
+- vehicle_id: FK a `vehicles.id`  
+- tariff_id: FK a `tariffs.id` (tarifa aplicada)  
+- start_time / end_time: Check-in y check-out  
+- created_by / closed_by: FK a `users.id`  
+- created_at / updated_at: Auditoría de cambios  
+
+**Permite**  
+• Registrar cada uso de plaza con vehículo y tarifa.  
+• Calcular tiempo transcurrido y tipo de tarifa.
+
+---
+
+## 6. Pagos y Recaudación (`payments`)
+
+- id: PK  
+- session_id: FK único a `sessions.id`  
+- amount: Monto cobrado  
+- paid_at: Fecha y hora de pago  
+- processed_by: FK a `users.id`  
+
+**Permite**  
+• Guardar un pago por sesión.  
+• Extraer recaudación total y por rango de fechas.
+
+---
+
+## 7. Conciliación con Pasarelas (`payment_transactions`)
+
+- id: PK  
+- payment_id: FK a `payments.id`  
+- gateway_tx_id: Identificador externo  
+- gateway_name: Nombre de pasarela  
+- transaction_date: Fecha de la transacción  
+- amount: Monto informado  
+- status: Estado (`pending`,`success`,`failed`)  
+- created_at: Registro de la transacción  
+
+**Permite**  
+• Verificar que el pago interno coincide con la pasarela.  
+• Detectar transacciones fallidas o pendientes.
+
+---
+
+## 8. Extractos Bancarios (`bank_statements` y `bank_statement_records`)
+
+- **bank_statements**: metadatos de archivo importado  
+- **bank_statement_records**: línea a línea del extracto (fecha, descripción, monto, match)  
+
+**Permite**  
+• Importar CSV de banco y almacenar cada línea.  
+• Comparar montos y fechas con pagos internos.
+
+---
+
+## 9. Resultado de Conciliación (`payment_reconciliation`)
+
+- id: PK  
+- payment_id / statement_record_id: FKs  
+- status: `matched` / `unmatched` / `flagged`  
+- comments: Observaciones manuales  
+- reconciled_at: Fecha de conciliación  
+
+**Permite**  
+• Guardar el estado de comparativa entre pago y extracto  
+• Generar informe de discrepancias
+
+---
+
+## 10. Notificaciones (`notification_logs`)
+
+- id: PK  
+- type: `sms` / `email` / `push`  
+- recipient: Destinatario (teléfono, email, token)  
+- message: Contenido enviado  
+- status: `queued` / `sent` / `failed`  
+- sent_at / created_at: Timestamps  
+
+**Permite**  
+• Auditar avisos a usuarios (recordatorios, confirmaciones).  
+• Reintentos y estadísticas de envío.
+
+---
+
+## 11. Logs de Integraciones (`integration_logs`)
+
+- id: PK  
+- integration: Nombre del servicio (ERP, BI, etc.)  
+- event: Evento o endpoint invocado  
+- payload / response: Cuerpo de petición y respuesta en JSON  
+- status: `success` / `error`  
+- logged_at: Fecha de registro  
+
+**Permite**  
+• Depurar flujos con sistemas externos.  
+• Monitorear latencia, errores y volúmenes de integración.
+
+---
+
+## 12. Orquestación de Reportes (`report_requests`)
+
+- id: PK  
+- report_type: Identificador de reporte (e.g. “daily_revenue”)  
+- params: Parámetros en JSON (fecha, plaza, usuario)  
+- requested_by: FK a `users.id`  
+- status: `pending` / `completed` / `failed`  
+- result_url: URL al archivo generado (CSV, PDF)  
+- timestamps: requested_at / completed_at  
+
+**Permite**  
+• Solicitar generación asíncrona de informes pesados.  
+• Consultar estado y recuperarlos vía URL.
+
+---
+
+## 13. Vistas de Resumen
+
+- **`revenue_summary`**: Recaudación diaria  
+- **`occupancy_report`**: Horas ocupadas por plaza  
+
+**Permite**  
+• Consultas rápidas para dashboards y KPIs.
+
+---
+
+### Capacidades Globales
+
+- Gestión completa de usuarios y roles  
+- Registro y auditoría de cada acción (check-in/out, pagos, cambios de tarifa)  
+- Histórico de tarifas y aplicación automática según fecha  
+- Control detallado de conciliaciones bancarias  
+- Envío y log de notificaciones a clientes y staff  
+- Log de integraciones con servicios externos  
+- Generación asíncrona y tracking de reportes personalizados  
+
+Este esquema es el cimiento para un backend escalable, auditado y listo para integrarse con pasarelas de pago, ERPs, BI y herramientas de notificaciones.
+
+---
+
+# Documentación Recomendada para tu Backend
+
+Para construir un backend sólido y mantenible sobre el esquema de base de datos propuesto, conviene acompañarlo con varios documentos clave. A continuación los más importantes:
+
+## 1. Especificación de la API (OpenAPI / Swagger)
+- Define rutas, métodos HTTP, parámetros, cuerpos de petición y respuestas.  
+- Facilita a frontend y terceros entender y probar tu servicio.  
+- Genera automáticamente documentación interactiva (Swagger UI, Redoc).
+
+Ejemplo de secciones:
+```yaml
+openapi: 3.0.1
+info:
+  title: Coipo Parking API
+  version: 1.0.0
+paths:
+  /api/auth/login:
+    post:
+      summary: Iniciar sesión
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Éxito
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+components:
+  schemas:
+    LoginRequest:
+      type: object
+      properties:
+        username:
+          type: string
+        password:
+          type: string
+    AuthResponse:
+      type: object
+      properties:
+        message:
+          type: string
+```
+
+---
+
+## 2. Diagrama Entidad-Relación (ERD)
+- Muestra tablas y sus relaciones (1-n, n-m).  
+- Ayuda a visualizar claves foráneas y cardinalidades.  
+- Se puede crear con herramientas como MySQL Workbench o draw.io.
+
+---
+
+## 3. Diccionario de Datos
+- Descripción de cada tabla, columna y tipo de dato.  
+- Reglas de negocio (valores permitidos, longitudes máximas).  
+- Ejemplo:
+
+| Tabla            | Columna          | Tipo       | Descripción                                    |
+|------------------|------------------|------------|------------------------------------------------|
+| users            | id               | INT        | PK, autoincrement                              |
+| users            | username         | VARCHAR(50)| Nombre de usuario único                        |
+| vehicles         | plate            | VARCHAR(15)| Matrícula única                                |
+| sessions         | start_time       | DATETIME   | Timestamp de inicio                            |
+| payments         | amount           | INT        | Monto cobrado en CLP                           |
+
+---
+
+## 4. Arquitectura y ADRs
+- **Diagrama de componentes**: cliente, servidor, base de datos, pasarela de pago, colas.  
+- **ADRs (Architecture Decision Records)**: justifica decisiones clave (p.ej. por qué usar JWT, por qué Prisma).  
+
+---
+
+## 5. Guía de Despliegue y DevOps
+- Variables de entorno requeridas (`.env.example`).  
+- Dockerfile y `docker-compose.yml`.  
+- Scripts de migración y semilla (`npm run migrate`, `npm run seed`).  
+- Instrucciones de CI/CD (GitHub Actions, GitLab CI).  
+
+---
+
+## 6. Plan de Pruebas
+- **Unit tests**: lógica de validación, servicios.  
+- **Integration tests**: endpoints HTTP usando Supertest o Postman/Newman.  
+- **E2E tests**: flujos completos (login → check-in → pago).  
+- Cobertura mínima y reporte de coverage.
+
+---
+
+## 7. Manual de Operaciones
+- Monitorización (health check, métricas).  
+- Recuperación ante fallos (backups, restore).  
+- Políticas de rollback y migraciones seguras.  
+
+---
+
+## 8. Documentación de Integraciones
+- Webhooks y formatos de payload (p.ej. Stripe, Twilio).  
+- Ejemplos de requests/responses.  
+- Puntos de extensión para futuros conectores.
+
+---
+
+Con estos documentos tendrás un proyecto bien definido, fácil de entender, de probar y de escalar en producción.
