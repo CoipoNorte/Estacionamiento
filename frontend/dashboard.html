@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Dashboard – Coipo Parking</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen flex flex-col">
+
+  <!-- Header -->
+  <header class="bg-white shadow p-4 flex justify-between items-center">
+    <h1 class="text-xl font-semibold">Coipo Parking</h1>
+    <button id="logoutBtn" type="button" class="text-red-500 hover:underline">
+      Cerrar sesión
+    </button>
+  </header>
+
+  <!-- Controles -->
+  <div class="bg-white m-4 p-4 rounded shadow space-y-4">
+    <div class="flex justify-between">
+      <span>
+        <strong>Tarifa vigente:</strong>
+        <span id="currentRate">Cargando…</span>
+      </span>
+      <button id="openRateModal" type="button"
+              class="px-3 py-1 bg-yellow-400 rounded hover:bg-yellow-500">
+        Modificar tarifa
+      </button>
+    </div>
+    <div class="flex justify-between">
+      <span>
+        <strong>Total recaudado:</strong>
+        <span id="totalRevenue">Cargando…</span> CLP
+      </span>
+      <button id="refreshRevenue" type="button"
+              class="px-3 py-1 bg-blue-300 rounded hover:bg-blue-400">
+        Refrescar
+      </button>
+    </div>
+    <div class="flex justify-between items-center">
+      <span><strong>Histórico de pagos:</strong></span>
+      <button id="showRecords" type="button"
+              class="px-3 py-1 bg-indigo-300 rounded hover:bg-indigo-400">
+        Ver registros
+      </button>
+    </div>
+  </div>
+
+  <!-- Agregar plaza -->
+  <main class="p-6 flex-1">
+    <form id="createSpotForm" class="mb-6 flex space-x-2">
+      <input id="spotNumber" type="number" placeholder="No. de plaza"
+             class="border p-2 rounded flex-1" required />
+      <button type="submit"
+              class="bg-green-600 text-white px-4 rounded hover:bg-green-700">
+        Agregar
+      </button>
+    </form>
+    <div id="spotsGrid" class="grid grid-cols-4 gap-4"></div>
+
+    <!-- Tabla de registros -->
+    <div id="recordsTableContainer" class="mt-6 overflow-x-auto hidden">
+      <table id="recordsTable" class="min-w-full bg-white shadow rounded">
+        <thead>
+          <tr class="bg-gray-200">
+            <th class="px-4 py-2 text-left">Placa</th>
+            <th class="px-4 py-2 text-right">Monto</th>
+            <th class="px-4 py-2 text-left">Fecha</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </main>
+
+  <!-- Modal: Iniciar flujo -->
+  <div id="modalStart"
+       class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center">
+    <div class="bg-white p-6 rounded shadow w-80 relative">
+      <button id="closeStart" type="button"
+              class="absolute top-2 right-2 text-gray-500 hover:text-gray-800">
+        &times;
+      </button>
+      <h2 class="text-lg mb-4">Ingresar Vehículo</h2>
+      <input id="modalPlate" type="text" placeholder="Matrícula"
+             class="w-full border p-2 mb-4 rounded" />
+      <div class="flex justify-end space-x-2">
+        <button id="closeStartBtn" type="button"
+                class="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400">
+          Cancelar
+        </button>
+        <button id="confirmStart" type="button"
+                class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+          Confirmar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Cobrar y liberar -->
+  <div id="modalEnd"
+       class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center">
+    <div class="bg-white p-6 rounded shadow w-80 relative">
+      <button id="closeEnd" type="button"
+              class="absolute top-2 right-2 text-gray-500 hover:text-gray-800">
+        &times;
+      </button>
+      <h2 class="text-lg mb-4">Cobrar y Liberar</h2>
+      <p class="mb-2"><strong>Placa:</strong> <span id="modalEndPlate"></span></p>
+      <p class="mb-2"><strong>Tiempo:</strong> <span id="modalElapsed">0</span> min</p>
+      <p class="mb-2"><strong>Tarifa:</strong> <span id="modalRateType"></span></p>
+      <p class="mb-4"><strong>Monto:</strong> <span id="modalAmount"></span> CLP</p>
+      <div class="flex justify-end space-x-2">
+        <button id="closeEndBtn" type="button"
+                class="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400">
+          Cancelar
+        </button>
+        <button id="confirmEnd" type="button"
+                class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">
+          Pagar y Liberar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Modificar tarifa -->
+  <div id="modalRate"
+       class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center">
+    <div class="bg-white p-6 rounded shadow w-80 relative">
+      <button id="closeRate" type="button"
+              class="absolute top-2 right-2 text-gray-500 hover:text-gray-800">
+        &times;
+      </button>
+      <h2 class="text-lg mb-4">Aplicar Nueva Tarifa</h2>
+      <label class="block mb-1">Tarifa Diurna (CLP/hora)</label>
+      <input id="inputDayRate" type="number"
+             class="w-full border p-2 rounded mb-4" />
+      <label class="block mb-1">Multiplicador Nocturno</label>
+      <input id="inputNightMult" type="number" step="0.1"
+             class="w-full border p-2 rounded mb-4" />
+      <div class="flex justify-end space-x-2">
+        <button id="closeRateBtn" type="button"
+                class="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400">
+          Cancelar
+        </button>
+        <button id="confirmRate" type="button"
+                class="px-4 py-2 bg-yellow-500 text-white rounded hover:bg-yellow-600">
+          Aplicar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/dashboard.js"></script>
+</body>
+</html>
